@@ -1,1 +1,1 @@
-# Add your integration-specific dependencies here
+dateparser~=1.2.1
