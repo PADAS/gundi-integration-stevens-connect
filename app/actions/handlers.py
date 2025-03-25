@@ -27,7 +27,12 @@ def generate_date_pairs(lower_date, upper_date, interval=MAX_DAYS_PER_QUERY):
 
 
 def transform(station_sensor, timestamp, readings):
-    source_name = f"{station_sensor.station['station_name']} - Sensor '{station_sensor.sensor['name']}'"
+    if station_sensor.station['station_name'] == station_sensor.sensor['name']:
+        # Sensor info is related to the station
+        source_name = f"Station '{station_sensor.station['station_name']}'"
+    else:
+        source_name = f"{station_sensor.station['station_name']} - Sensor '{station_sensor.sensor['name']}'"
+
     readings_additional = {}
 
     for reading in readings:
