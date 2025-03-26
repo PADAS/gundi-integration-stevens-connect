@@ -31,7 +31,7 @@ def transform(station_sensor, timestamp, readings):
         # Sensor info is related to the station
         source_name = f"Station {station_sensor.station['station_name']}"
     else:
-        source_name = f"{station_sensor.station['station_name']} Sensor {station_sensor.sensor['name']}"
+        source_name = f"{station_sensor.station['station_name']} - Sensor {station_sensor.sensor['name']}"
 
     readings_additional = {}
 
