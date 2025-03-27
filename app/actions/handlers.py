@@ -153,10 +153,6 @@ async def action_pull_observations(integration, action_config: PullObservationsC
         message = f"Failed to authenticate with integration {integration.id} using {auth_config}. Exception: {e}"
         logger.exception(message)
         raise e
-    except httpx.HTTPStatusError as e:
-        message = f"'pull_observations' action error with integration {integration.id} using {auth_config}. Exception: {e}"
-        logger.exception(message)
-        raise e
 
 
 @activity_logger()
@@ -188,9 +184,5 @@ async def action_pull_sensor_observations_per_station(integration, action_config
             return {"observations_extracted": 0}
     except (client.StevensConnectUnauthorizedException, client.StevensConnectBadRequestException) as e:
         message = f"Failed to authenticate with integration {integration.id} using {action_config}. Exception: {e}"
-        logger.exception(message)
-        raise e
-    except httpx.HTTPStatusError as e:
-        message = f"'pull_sensor_observations_per_station' action error with integration {integration.id} using {action_config}. Exception: {e}"
         logger.exception(message)
         raise e
