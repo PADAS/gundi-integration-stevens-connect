@@ -1,11 +1,15 @@
 import httpx
 import logging
 
+import tempfile
+import os
+import zipfile
+
 import app.actions.client as client
 
 from dateparser import parse as dp
 from datetime import datetime, timedelta, timezone
-from app.actions.configurations import AuthenticateConfig, PullObservationsConfig, PullSensorObservationsPerStationConfig, get_auth_config
+from app.actions.configurations import AuthenticateConfig, PullObservationsConfig, PullSensorObservationsPerStationConfig, ProcessFileConfig, get_auth_config
 from app.services.action_scheduler import trigger_action
 from app.services.activity_logger import activity_logger
 from app.services.gundi import send_observations_to_gundi
@@ -186,3 +190,39 @@ async def action_pull_sensor_observations_per_station(integration, action_config
         message = f"Failed to authenticate with integration {integration.id} using {action_config}. Exception: {e}"
         logger.exception(message)
         raise e
+
+
+@activity_logger()
+async def action_process_file(integration, action_config: ProcessFileConfig):
+    # Making the file fetching again since tempFile is not available in the function from the config
+    test_file_url = "https://drive.usercontent.google.com/download?id=1EOM6-MuITQM4-8WHc63c-GDuOx3VKAj0&export=download&authuser=0&confirm=t&uuid=ac1e8580-f150-4385-8105-0e3519c82f46&at=AEz70l6QXlVcIrin-jpYz9SnSs3C:1743547885016"
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        file_path = os.path.join(tmp_dir, "test.zip")
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(test_file_url)
+            response.raise_for_status()
+
+        with open(file_path, "wb") as file:
+            file.write(response.content)
+
+        # Verify the file exists and is a valid zip file
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        if not zipfile.is_zipfile(file_path):
+            raise ValueError(f"Downloaded file is not a valid zip file: {file_path}")
+
+        if zipfile.is_zipfile(file_path):
+            with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                for file_info in zip_ref.infolist():
+                    with zip_ref.open(file_info) as file:
+                        try:
+                            content = file.read().decode("utf-8")
+                        except:
+                            continue
+                        print(f"Content of '{file_info.filename}':\n{content}\n")
+        else:
+            raise ValueError("Unsupported file type. Only zip and xml files are supported.")
+
+    return {"success": True}

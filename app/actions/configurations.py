@@ -3,9 +3,13 @@ import pydantic
 from typing import Any
 from datetime import datetime, timezone
 
-from app.actions.core import AuthActionConfiguration, PullActionConfiguration, ExecutableActionMixin, InternalActionConfiguration
+from app.actions.core import GenericActionConfiguration, AuthActionConfiguration, PullActionConfiguration, ExecutableActionMixin, InternalActionConfiguration
 from app.services.errors import ConfigurationNotFound
 from app.services.utils import find_config_for_action, UIOptions, FieldWithUIOptions, GlobalUISchemaOptions
+
+
+class ProcessFileConfig(GenericActionConfiguration, ExecutableActionMixin):
+    file: pydantic.FilePath
 
 
 class AuthenticateConfig(AuthActionConfiguration, ExecutableActionMixin):

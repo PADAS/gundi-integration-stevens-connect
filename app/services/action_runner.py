@@ -105,7 +105,32 @@ async def execute_action(integration_id: str, action_id: str, config_overrides: 
         config_data = action_config.data if action_config else {}
         if config_overrides:
             config_data.update(config_overrides)
-        parsed_config = config_model.parse_obj(config_data)
+
+            # TEST ONLY TODO: DELETE ME!!!
+            import tempfile
+            import os
+            import zipfile
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                file_path = os.path.join(tmp_dir, "test.zip")
+
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(config_data["file"])
+                    response.raise_for_status()  # Ensure the request was successful
+
+                with open(file_path, "wb") as file:
+                    file.write(response.content)
+
+                # Verify the file exists and is a valid zip file
+                if not os.path.exists(file_path):
+                    raise FileNotFoundError(f"File not found: {file_path}")
+
+                if not zipfile.is_zipfile(file_path):
+                    raise ValueError(f"Downloaded file is not a valid zip file: {file_path}")
+
+                config_data["file"] = file_path
+                parsed_config = config_model.parse_obj(config_data)
+
     except pydantic.ValidationError as e:
         return await _handle_error(e, integration_id, action_id, config_data, status.HTTP_422_UNPROCESSABLE_ENTITY)
 
