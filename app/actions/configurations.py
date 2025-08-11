@@ -1,6 +1,6 @@
 import pydantic
 
-from typing import Any
+from typing import Any, List, Optional
 from datetime import datetime, timezone
 
 from app.actions.core import AuthActionConfiguration, PullActionConfiguration, ExecutableActionMixin, InternalActionConfiguration
@@ -31,6 +31,10 @@ class PullObservationsConfig(PullActionConfiguration):
             widget="range",  # This will be rendered ad a range slider
         )
     )
+    sensor_featured_properties: Optional[List[str]] = pydantic.Field(
+        title='Featured Readings',
+        description='A comma-separated list of sensor data to display as "featured_property" in ER. (format: SENSOR_NAME: DATA_TYPE_1, DATA_TYPE_2, ...)',
+    )
 
 
 class PullSensorObservationsPerStationConfig(InternalActionConfiguration):
@@ -38,6 +42,7 @@ class PullSensorObservationsPerStationConfig(InternalActionConfiguration):
     stop: datetime
     project_id: int
     station: dict
+    sensor_featured_properties: list
     sensor: Any
     units: Any
 
