@@ -197,7 +197,7 @@ async def action_pull_sensor_observations_per_station(integration, action_config
                     f"Extracted {len(readings)} readings for sensor '{action_config.sensor['name']}' from '{timestamp}'"
                 )
 
-                transformed_data.append(transform(action_config, action_config.sensor_featured_properties ,timestamp, readings))
+                transformed_data.append(transform(action_config, action_config.sensor_featured_properties, timestamp, readings))
 
             for i, batch in enumerate(generate_batches(transformed_data, 200)):
                 logger.info(f'Sending observations batch #{i}: {len(batch)} observations. Sensor: {action_config.sensor["name"]}')
