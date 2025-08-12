@@ -26,7 +26,18 @@ def generate_date_pairs(lower_date, upper_date, interval=MAX_DAYS_PER_QUERY):
         upper_date -= timedelta(days=interval)
 
 
-def transform(station_sensor, timestamp, readings):
+def parse_sensor_featured_properties(data_to_display):
+    result = {}
+    for entry in data_to_display:
+        if ':' in entry:
+            key, values = entry.split(':', 1)
+            key = key.strip()
+            values_list = [v.strip() for v in values.split(',')]
+            result[key] = values_list
+    return result
+
+
+def transform(station_sensor, featured_properties_to_display, timestamp, readings):
     if station_sensor.station['station_name'] == station_sensor.sensor['name']:
         # Sensor info is related to the station
         source_name = f"Station {station_sensor.station['station_name']}"
@@ -47,6 +58,16 @@ def transform(station_sensor, timestamp, readings):
 
         readings_additional.update(reading_additional)
 
+    if featured_properties_to_display:
+        readings_str = ', '.join(
+            f"{k}: {readings_additional[k]}" for k in featured_properties_to_display if k in readings_additional
+        )
+        if not readings_str:
+            # sensor names set in config are not found in readings, show everything
+            readings_str = ', '.join(f"{k}: {v}" for k, v in readings_additional.items())
+    else:
+        readings_str = ', '.join(f"{k}: {v}" for k, v in readings_additional.items())
+
     return {
         "source_name": source_name,
         "source": station_sensor.sensor["id"],
@@ -57,7 +78,7 @@ def transform(station_sensor, timestamp, readings):
             "lat": station_sensor.station['station_latitude'],
             "lon": station_sensor.station['station_longitude'],
         },
-        "additional": {**readings_additional}
+        "additional": {**readings_additional, "readings": readings_str}
     }
 
 
@@ -84,6 +105,9 @@ async def action_pull_observations(integration, action_config: PullObservationsC
 
     base_url = integration.base_url or STEVENS_CONNECT_BASE_URL
     auth_config = get_auth_config(integration)
+
+    # "featured_property" info (is present)
+    featured_properties_to_display = parse_sensor_featured_properties(action_config.sensor_featured_properties) if action_config.sensor_featured_properties else {}
 
     try:
         projects = await client.get_projects(integration, base_url, auth_config)
@@ -120,6 +144,7 @@ async def action_pull_observations(integration, action_config: PullObservationsC
                             start_date = dp(device_state.get("updated_at")).replace(tzinfo=timezone.utc)
 
                         stop_date = datetime.now(timezone.utc)
+                        sensor_featured_properties = featured_properties_to_display.get(sensor.name, [])
 
                         # Generate date pairs for the given start and stop dates
                         for lower, upper in generate_date_pairs(start_date, stop_date):
@@ -128,6 +153,7 @@ async def action_pull_observations(integration, action_config: PullObservationsC
                                 stop=upper,
                                 project_id=project.id,
                                 station=station_info,
+                                sensor_featured_properties=sensor_featured_properties,
                                 sensor=sensor,
                                 units=projects.units
                             )
@@ -171,7 +197,7 @@ async def action_pull_sensor_observations_per_station(integration, action_config
                     f"Extracted {len(readings)} readings for sensor '{action_config.sensor['name']}' from '{timestamp}'"
                 )
 
-                transformed_data.append(transform(action_config, timestamp, readings))
+                transformed_data.append(transform(action_config, action_config.sensor_featured_properties, timestamp, readings))
 
             for i, batch in enumerate(generate_batches(transformed_data, 200)):
                 logger.info(f'Sending observations batch #{i}: {len(batch)} observations. Sensor: {action_config.sensor["name"]}')
